@@ -15,12 +15,9 @@ tar -xzf apache-tomcat-7.0.54.tar.gz
 mv apache-tomcat-7.0.54 tomcat
 rm apache-tomcat-7.0.54.tar.gz
 
-mkdir thredds
-cd thredds
+pushd tomcat/webapps/
 wget ftp://ftp.unidata.ucar.edu/pub/thredds/4.3/current/thredds.war
-cd ..
-
-ln -s $PWD/thredds/thredds.war tomcat/webapps/thredds.war
+popd
 EOF
 
 yum -y install git make gcc gcc-c++ pkgconfig libstdc++-devel curl curlpp curlpp-devel curl-devel libxml2 libxml2* libxml2-devel openssl-devel mailcap
@@ -69,20 +66,31 @@ chown $SUDO_UID:$SUDO_GID $PWD/datafiles
 echo "user_allow_other" > /etc/fuse.conf
  
 $RUNASUSER bash <<EOF
-cat > mount_nectar.sh <<EOI
+cat > scripts/mount_nectar.sh <<EOI
 #!/bin/bash
 /usr/bin/s3fs data $PWD/datafiles -o url="https://swift.rc.nectar.org.au:8888/" -o use_path_request_style -o allow_other -o uid=$SUDO_UID -o gid=$SUDO_GID
 EOI
  
-cat > unmount_nectar.sh <<EOI
+cat > scripts/unmount_nectar.sh <<EOI
 #!/bin/bash
 fusermount -u $PWD/datafiles
 EOI
  
-chmod +x mount_nectar.sh
-chmod +x unmount_nectar.sh
+chmod +x scripts/mount_nectar.sh
+chmod +x scripts/unmount_nectar.sh
  
-./mount_nectar.sh
+./scripts/mount_nectar.sh
 echo "Data storage has been mounted to '$PWD/datafiles'"
-EOF
 
+sleep 5s
+echo "Sleeping for 5 seconds."
+./scripts/start_tomcat.sh
+echo "Sleeping for 10 seconds."
+sleep 5s
+
+./scripts/configure_thredds.sh
+sleep 1s
+./scripts/stop_tomcat.sh
+sleep 1s
+./scripts/start_tomcat.sh
+EOF
