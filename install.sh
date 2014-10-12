@@ -10,6 +10,7 @@ if [ ! -f $EC2RC ]; then
     echo "ec2rc.sh not found in user's home directory."
     exit 2
 fi
+source $EC2RC
 
 RUNASUSER="sudo -u $SUDO_USER"
  
@@ -74,7 +75,6 @@ echo "user_allow_other" > /etc/fuse.conf
 $RUNASUSER bash <<EOF
 cat > scripts/mount_nectar.sh <<EOI
 #!/bin/bash
-source $EC2RC
 /usr/bin/s3fs data $PWD/datafiles -o url="$S3_URL" -o use_path_request_style -o allow_other -o uid=$SUDO_UID -o gid=$SUDO_GID
 EOI
  
