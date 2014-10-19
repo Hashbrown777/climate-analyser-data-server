@@ -4,16 +4,23 @@ if [ "$(id -u)" != "0" ]; then
    echo "This script must be run as root" 1>&2
    exit 1
 fi
- 
+
+EC2RC=$(eval echo "~${SUDO_USER}/ec2rc.sh")
+if [ ! -f $EC2RC ]; then
+    echo "ec2rc.sh not found in user's home directory."
+    exit 2
+fi
+source $EC2RC
+
 RUNASUSER="sudo -u $SUDO_USER"
  
 yum -y install java-1.7.0-openjdk java-1.7.0-openjdk-devel
 
 $RUNASUSER bash <<EOF
-wget http://apache.mirror.serversaustralia.com.au/tomcat/tomcat-7/v7.0.54/bin/apache-tomcat-7.0.54.tar.gz
-tar -xzf apache-tomcat-7.0.54.tar.gz
-mv apache-tomcat-7.0.54 tomcat
-rm apache-tomcat-7.0.54.tar.gz
+wget http://archive.apache.org/dist/tomcat/tomcat-7/v7.0.56/bin/apache-tomcat-7.0.56.tar.gz
+tar -xzf apache-tomcat-7.0.56.tar.gz
+mv apache-tomcat-7.0.56 tomcat
+rm apache-tomcat-7.0.56.tar.gz
 
 pushd tomcat/webapps/
 wget ftp://ftp.unidata.ucar.edu/pub/thredds/4.3/current/thredds.war
@@ -68,7 +75,7 @@ echo "user_allow_other" > /etc/fuse.conf
 $RUNASUSER bash <<EOF
 cat > scripts/mount_nectar.sh <<EOI
 #!/bin/bash
-/usr/bin/s3fs data $PWD/datafiles -o url="https://swift.rc.nectar.org.au:8888/" -o use_path_request_style -o allow_other -o uid=$SUDO_UID -o gid=$SUDO_GID
+/usr/bin/s3fs data $PWD/datafiles -o url="$S3_URL" -o use_path_request_style -o allow_other -o uid=$SUDO_UID -o gid=$SUDO_GID
 EOI
  
 cat > scripts/unmount_nectar.sh <<EOI
